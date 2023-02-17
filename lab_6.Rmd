@@ -110,16 +110,77 @@ table() #putting these results in a table
 
 #### Start with complete linkage
 ```{r}
+#creating distance matrix
 peng_dist <- dist(penguins_scale, method = 'euclidean') 
+
+## Hierarchical clustering (complete linkage)
+peng_hc_complete <- hclust(peng_dist, method = 'complete')
+
+plot(peng_hc_complete, cex = .6, hang = -1)
+
+### cut the tree  into three cluster
+peng_cut_hc <- cutree(peng_hc_complete, 3)
+table(peng_cut_hc, penguins_complete$species) #cluster 1 is mostly adelie, cluster 2 is mostly gentoo, cluster 3 is chinstrap
+```
+### World Bank data: read in and simplify
+```{r}
+wb_env <- read_csv(here::here('data/wb_env.csv'))
+
+wb_ghg_20 <- wb_env %>% 
+  slice_max(n = 20, ghg)
+
+summary(wb_ghg_20)
+
+wb_scaled <- wb_ghg_20 %>% 
+  select(3:7) %>%  # grabbing column number 3,4,5,6,7
+scale()
+summary(wb_scaled)
+
+rownames(wb_scaled) <- wb_ghg_20$name # for visualization bc we need numeric values. bc of those we lost the names of the countries so we just renamed the names of the rows with the name of the countries
+```
+
+### FInd the Euclidean distance
+```{r}
+euc_distance <- dist(wb_scaled, method = 'euclidean')
 ```
 
 
+### Perform hierarchical clustering w/ complete linkage
+```{r}
+hc_complete <- hclust(euc_distance, method = 'complete')
+plot(hc_complete, cex = .6, hang = -1)
+```
+
+### Perform heriarchical clustering by single linkage
+```{r}
+hc_single <- hclust(euc_distance, method = 'single')
+plot(hc_single, cex = .6, hang = -1)
+```
+
+### Make a tanglegram
+```{r}
+dend_complete <- as.dendrogram(hc_complete)
+dend_single <- as.dendrogram(hc_single) # making it a fancier dendrogram
+
+tanglegram(dend_complete, dend_single) # combines the two dendrograms together. tells us which are grouped the same way
+
+entanglement(dend_complete, dend_single) # gives us the amount of entanglement 
+
+untangle(dend_complete,dend_single, method = 'step1side') %>% 
+  entanglement() # takes a cluster and flips it to see if we could get a better line up of the clusters
+
+untangle(dend_complete, dend_single, method = 'step1side') %>% 
+  tanglegram(common_subtrees_color_branches = TRUE)
+
+```
 
 
-
-
-
-
+### Let's making a dendogram in ggplot
+```{r}
+ggdendrogram(hc_complete, rotate = TRUE ) +
+  theme_minimal() +
+  labs(x = 'Country')
+```
 
 
 
